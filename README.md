@@ -17,6 +17,9 @@ The Biosensing API is an API that streams real-time data from Polar heart rate s
 ```bash
    python3 -m venv venv
 ```
+```bash
+   venv\Scripts\activate
+```
 
 3. Activate the virtual environment
 ```bash
