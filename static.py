@@ -8,6 +8,7 @@ import math
 from scipy import signal
 from scipy.signal import find_peaks
 from pyhrv import time_domain
+import uvicorn
 
 app = FastAPI()
 
@@ -69,6 +70,8 @@ b, a = signal.butter(order, cutoff_freq, btype='low', analog=False, output='ba')
 # Norm HRV
 threshold = 75
 
+listt = []
+
 
 async def heart_rate_handler(data):
     heart_rate = struct.unpack('<B', data[1:2])[0]
@@ -78,13 +81,16 @@ def apply_filter(data):
     filtered_data = signal.lfilter(b, a, data)
     return filtered_data.tolist()
 
+hrv_scoreT = 0
+
 def calculate_hrv(rr_intervals):
-    if len(rr_intervals) < 4:
+    global hrv_scoreT
+
+    if len(rr_intervals) < 2:
         return None
 
     recent_data = rr_intervals[-4:]
     differences = [rr_intervals[i] - rr_intervals[i-1] for i in range(len(recent_data))]
-    # differences = [rr_intervals[i] - rr_intervals[i-1] for i in range(-3, 0)]
     squared_differences = [diff ** 2 for diff in differences]
     mean_squared_diff = sum(squared_differences) / (len(squared_differences) - 1)
     rmssd = math.sqrt(mean_squared_diff)
@@ -92,10 +98,17 @@ def calculate_hrv(rr_intervals):
     ln_rmssd = math.log(rmssd)
     hrv_score = (ln_rmssd / 6.5) * 100
 
-    if hrv_score > threshold:
-        inverted_hrv_score = 100 - hrv_score
-    else:
-        inverted_hrv_score = hrv_score
+
+    # if hrv_score + 15 > listt[-1:][0] or hrv_score -15 <= listt[-1:][0]:
+    #     inverted_hrv_score = 100 - hrv_score
+    #     print("ENTRE")
+    # else:
+    #     inverted_hrv_score = hrv_score
+
+    inverted_hrv_score = 100 - hrv_score
+    
+    listt.append(inverted_hrv_score)
+    hrv_scoreT = sum(listt) / len(listt)
 
     return inverted_hrv_score
 
@@ -151,6 +164,7 @@ async def rr_peaks_handler(data):
 
 @app.on_event("shutdown")
 async def shutdown_event():
+    print("Bye bye, your total HRV: ", hrv_scoreT)
     await polar_device.disconnect()
 
 @app.exception_handler(HTTPException)
@@ -164,7 +178,10 @@ async def http_exception_handler(request, exc):
 async def connect_to_polar():
     try:
         devices = await BleakScanner.discover()
+        # print(devices)
+        # polar_devices = [device for device in devices if device.name is not None and "Polar H10 C29DFA2B" in device.name]
         polar_devices = [device for device in devices if device.name is not None and "Polar" in device.name]
+
         if not polar_devices:
             raise HTTPException(status_code=404, detail="No Polar devices found")
 
@@ -231,7 +248,7 @@ async def get_hrv():
             hrv_values = [data["hrv"] for data in hrv_data]
             filtered_hrv_data = apply_filter(hrv_values)
             filtered_hrv = round(filtered_hrv_data[-1], 2)
-            return {"hrv": filtered_hrv}
+            return {"hrv": int(filtered_hrv)}
 
         raise HTTPException(status_code=404, detail="No HRV data available")
 
@@ -239,4 +256,4 @@ async def get_hrv():
         return {"error": str(e)}
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8001)
