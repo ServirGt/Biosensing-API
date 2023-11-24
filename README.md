@@ -1,11 +1,11 @@
-# Biosensing API
+# BioSensing API
 
 [![forthebadge](https://forthebadge.com/images/badges/made-with-python.svg)](https://forthebadge.com)
 [![forthebadge](https://forthebadge.com/images/badges/powered-by-coffee.svg)](https://forthebadge.com)
 [![forthebadge](https://forthebadge.com/images/badges/makes-people-smile.svg)](https://forthebadge.com)
 
 ## Description
-The Biosensing API is an API that streams real-time data from Polar heart rate sensors. It transmits real-time data such as heartbeats, RR peaks, and HRV.
+The BioSensing API is an API that streams real-time data from Polar heart rate sensors. It transmits real-time data such as heartbeats, RR peaks, and HRV.
 
 ## Installation
 
